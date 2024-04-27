@@ -8,28 +8,29 @@ using OnlineShop_4M_DataAccess.Data;
 using OnlineShop_4M_Models;
 using OnlineShop_4M_Models.ViewModels;
 using OnlineShop_4M_Utility;
+using OnlineShop_4M_DataAccess.Repository.IRepository;
 
 namespace OnlineShop_4M.Controllers
 {
     [Authorize(Roles = PathManager.AdminRole)]
     public class ProductController : Controller
     {
-        private ApplicationDbContext context;
-
+        
+        private IProductRepository productRepository;
         private IWebHostEnvironment webHostEnvironment;
 
-        public ProductController(ApplicationDbContext context,
+        public ProductController(ApplicationDbContext context, IProductRepository productRepository,
             IWebHostEnvironment webHostEnvironment)
         {
-            this.context = context;
-
+            
+            this.productRepository = productRepository;
             this.webHostEnvironment = webHostEnvironment;
         }
 
         public IActionResult Index()
         {
-            IEnumerable<Product> productList = context.Product;
-
+            //IEnumerable<Product> productList = productRepository.GetAll(includeProperties:"Category,Company");
+            IEnumerable<Product> productList = productRepository.GetAll(includeProperties: "Category");
             return View(productList);
         }
 
@@ -63,15 +64,15 @@ namespace OnlineShop_4M.Controllers
 
                     productViewModel.Product.Image = fileName + extension;
 
-                    context.Product.Add(productViewModel.Product);
+                    productRepository.Add(productViewModel.Product);
                 }
                 else
                 {
                     // обновление изображения
 
-                    var product = context.Product.
-                        AsNoTracking().                     // отключаем отслеживание за сущностью
-                        FirstOrDefault(x => x.Id == productViewModel.Product.Id);
+
+
+                    var product = productRepository.FirstOrDefault(x => x.Id == productViewModel.Product.Id, IsTracking: false);
 
                     if (file.Count > 0)   // если юзер загрул файл
                     {
@@ -104,11 +105,11 @@ namespace OnlineShop_4M.Controllers
                         productViewModel.Product.Image = product.Image;
                     }
 
-                    context.Product.Update(productViewModel.Product);
+                    productRepository.Update(productViewModel.Product);
                 }
 
                 // сохранить в бд
-                context.SaveChanges();
+                productRepository.Save();
 
                 return RedirectToAction("Index");
             }
@@ -122,8 +123,7 @@ namespace OnlineShop_4M.Controllers
             ProductViewModel productViewModel = new ProductViewModel()
             {
                 Product = new Product(),
-                CategoryDropDown = context.Category.
-                    Select(x => new SelectListItem() { Text = x.Name, Value = x.Id.ToString() })
+                CategoryDropDown = productRepository.GetAllDropDownList(PathManager.CategoryName)
             };
 
             if (id == null)
@@ -134,7 +134,8 @@ namespace OnlineShop_4M.Controllers
             }
             else
             {
-                productViewModel.Product = context.Product.Find(id);   // ef поиск по id
+                productViewModel.Product = productRepository.Find(id.Value);
+               
 
                 if (productViewModel.Product == null)
                 {
@@ -157,9 +158,8 @@ namespace OnlineShop_4M.Controllers
 
             // удаление фотки с сервера
             // удаление товара из бд
-
-            Product product = context.Product.Include(nav => nav.Category).
-                FirstOrDefault(x => x.Id == id);
+            //Product product=productRepository.FirstOrDefault(x => x.Id == id,includeProperties:"Category,Company");
+            Product product = productRepository.FirstOrDefault(x => x.Id == id, includeProperties: "Category");
 
             if (product == null)
             {
@@ -172,7 +172,7 @@ namespace OnlineShop_4M.Controllers
         [HttpPost]
         public IActionResult DeletePost(int? id)
         {
-            var product = context.Product.Find(id);
+            var product = productRepository.Find(id.Value);
 
             if (product == null)
             {
@@ -188,8 +188,8 @@ namespace OnlineShop_4M.Controllers
                 System.IO.File.Delete(filePath);
             }
 
-            context.Product.Remove(product);
-            context.SaveChanges();
+            productRepository.Remove(product);
+            productRepository.Save();
 
             return RedirectToAction("Index");
         }

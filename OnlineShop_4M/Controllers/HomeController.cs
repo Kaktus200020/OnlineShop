@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using OnlineShop_4M_DataAccess.Data;
+using OnlineShop_4M_DataAccess.Repository.IRepository;
 using OnlineShop_4M_Models;
 using OnlineShop_4M_Models.ViewModels;
 using OnlineShop_4M_Utility;
@@ -10,19 +11,23 @@ namespace OnlineShop_4M.Controllers;
 
 public class HomeController : Controller
 {
-    private ApplicationDbContext context;
+    //private ApplicationDbContext context;
+    private IProductRepository productRepository;
+    private ICategoryRepository categoryRepository;
 
-    public HomeController(ApplicationDbContext context)
+    public HomeController(ApplicationDbContext context, ICategoryRepository categoryRepository, IProductRepository productRepository)
     {
-        this.context = context;
+
+        this.categoryRepository = categoryRepository;
+        this.productRepository = productRepository;
     }
 
     public IActionResult Index()
     {
         HomeViewModel viewModel = new HomeViewModel()
         {
-            Products = context.Product.Include(x => x.Category),
-            Categories = context.Category
+            Products =productRepository.GetAll(includeProperties:"Category"),
+            Categories = categoryRepository.GetAll()
         };
 
         return View(viewModel);
@@ -74,8 +79,7 @@ public class HomeController : Controller
 
         DetailsViewModel viewModel = new DetailsViewModel()
         {
-            Product = context.Product.Include(x => x.Category)
-                .FirstOrDefault(x => x.Id == id),
+            Product = productRepository.FirstOrDefault(x => x.Id == id,includeProperties:"Category"),
             ExistsInCart = false
         };
 

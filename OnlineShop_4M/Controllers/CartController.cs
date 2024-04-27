@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using OnlineShop_4M_DataAccess.Data;
+using OnlineShop_4M_DataAccess.Repository.IRepository;
 using OnlineShop_4M_Models;
 using OnlineShop_4M_Models.ViewModels;
 using OnlineShop_4M_Utility;
@@ -13,11 +14,21 @@ namespace OnlineShop_4M.Controllers
     [Authorize]   // только для авторизованных = кто ввел логин и пароль
 	public class CartController : Controller
 	{
-        private ApplicationDbContext context;
+        
 
-        public CartController(ApplicationDbContext context)
+        private IProductRepository productRepository;
+        private IApplicationUserRepository applicationUserRepository;
+        private IInquiryDetailRepository inquiryDetailRepository;
+        private IInquiryHeaderRepository inquiryHeaderRepository;
+
+
+        public CartController(ApplicationDbContext context, IProductRepository productRepository, IApplicationUserRepository applicationUserRepository, IInquiryDetailRepository inquiryDetailRepository, IInquiryHeaderRepository inquiryHeaderRepository)
         {
-            this.context = context;
+            this.productRepository = productRepository;
+            this.applicationUserRepository = applicationUserRepository;
+            this.inquiryDetailRepository = inquiryDetailRepository;
+            this.inquiryHeaderRepository = inquiryHeaderRepository;
+
         }
 
         public IActionResult Index()
@@ -39,7 +50,7 @@ namespace OnlineShop_4M.Controllers
 
             // извлекаем продукты по id
             IEnumerable<Product> productList =
-                context.Product.Where(x => productIdCart.Contains(x.Id));
+                productRepository.GetAll(x => productIdCart.Contains(x.Id));
 
             return View(productList);
         }
@@ -92,11 +103,11 @@ namespace OnlineShop_4M.Controllers
 
             // извлекаем продукты по id
             IEnumerable<Product> productList =
-                context.Product.Where(x => productIdCart.Contains(x.Id));
+                productRepository.GetAll(x => productIdCart.Contains(x.Id));
 
             ProductUserViewModel viewModel = new ProductUserViewModel()
             {
-                ApplicationUser = context.ApplicationUser.FirstOrDefault(x => x.Id == claim.Value),
+                ApplicationUser = applicationUserRepository.FirstOrDefault(x => x.Id == claim.Value),
                 ProductList = productList.ToList()
             };
 

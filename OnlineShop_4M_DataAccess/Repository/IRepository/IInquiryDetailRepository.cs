@@ -7,8 +7,8 @@ using System.Threading.Tasks;
 
 namespace OnlineShop_4M_DataAccess.Repository.IRepository
 {
-    public interface ICategoryRepository:IRepository<Category>
+    public interface IInquiryDetailRepository : IRepository<InquiryDetail>
     {
-        void Update(Category category);
+        void Update(InquiryDetail obj);
     }
 }

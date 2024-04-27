@@ -5,22 +5,25 @@ using Microsoft.AspNetCore.Mvc;
 using OnlineShop_4M_DataAccess.Data;
 using OnlineShop_4M_Models;
 using OnlineShop_4M_Utility;
+using OnlineShop_4M_DataAccess.Repository.IRepository;
 
 namespace OnlineShop_4M.Controllers
 {
     [Authorize(Roles = PathManager.AdminRole)]
     public class CompanyController : Controller
     {
-        private ApplicationDbContext context;
+        private ICompanyRepository companyRepository;
+    
 
-        public CompanyController(ApplicationDbContext context)
+        public CompanyController(ApplicationDbContext context, ICompanyRepository companyRepository)
         {
-            this.context = context;
+            this.companyRepository=companyRepository;
+            
         }
 
         public IActionResult Index()
         {
-            List<Company> companyList = context.Company.ToList();
+            List<Company> companyList = companyRepository.GetAll().ToList();
 
             return View(companyList);
         }
@@ -37,8 +40,8 @@ namespace OnlineShop_4M.Controllers
         {
             if (ModelState.IsValid)
             {
-                context.Company.Add(company);
-                context.SaveChanges();
+                companyRepository.Add(company);
+                companyRepository.Save();
 
                 return RedirectToAction("Index");
             }
@@ -54,7 +57,7 @@ namespace OnlineShop_4M.Controllers
                 return NotFound();
             }
 
-            var company = context.Company.Find(id);
+            var company = companyRepository.Find(id.Value);
 
             return View(company);
         }
@@ -64,8 +67,8 @@ namespace OnlineShop_4M.Controllers
         {
             if (ModelState.IsValid)
             {
-                context.Company.Update(company);   // !!! EF UPDATE
-                context.SaveChanges();
+                companyRepository.Update(company);   // !!! EF UPDATE
+                companyRepository.Save();
 
                 return RedirectToAction("Index");
             }
@@ -80,7 +83,7 @@ namespace OnlineShop_4M.Controllers
                 return NotFound();
             }
 
-            var company = context.Company.Find(id);
+            var company = companyRepository.Find(id.Value);
 
             if (company == null)
             {
@@ -95,15 +98,15 @@ namespace OnlineShop_4M.Controllers
         {
             int id = company.Id;
 
-            var companyFromBase = context.Company.Find(id);
+            var companyFromBase = companyRepository.Find(id);
 
             if (companyFromBase == null)
             {
                 return NotFound();
             }
 
-            context.Company.Remove(companyFromBase);
-            context.SaveChanges();
+            companyRepository.Remove(companyFromBase);
+            companyRepository.Save();
 
             return RedirectToAction("Index");
         }

@@ -3,8 +3,18 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using OnlineShop_4M_DataAccess.Data;
 
-var builder = WebApplication.CreateBuilder(args);
+using OnlineShop_4M_DataAccess.Repository;
 
+using OnlineShop_4M_DataAccess.Repository.IRepository;
+
+
+var builder = WebApplication.CreateBuilder(args);
+builder.Services.AddScoped<ICategoryRepository, CategoryRepository>();
+builder.Services.AddScoped<ICompanyRepository, CompanyRepository>();
+builder.Services.AddScoped<IProductRepository, ProductRepository>();
+builder.Services.AddScoped<IInquiryDetailRepository, InquiryDetailRepository>();
+builder.Services.AddScoped<IInquiryHeaderRepository, InquiryHeaderRepository>();
+builder.Services.AddScoped<IApplicationUserRepository, ApplicationUserRepository>();
 // Add services to the container.
 builder.Services.AddControllersWithViews();
 
