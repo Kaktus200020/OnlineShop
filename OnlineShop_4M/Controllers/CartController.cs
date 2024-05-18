@@ -2,8 +2,10 @@
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Identity.UI.Services;
 using Microsoft.AspNetCore.Mvc;
 using OnlineShop_4M_DataAccess.Data;
+using OnlineShop_4M_DataAccess.Repository;
 using OnlineShop_4M_DataAccess.Repository.IRepository;
 using OnlineShop_4M_Models;
 using OnlineShop_4M_Models.ViewModels;
@@ -15,20 +17,22 @@ namespace OnlineShop_4M.Controllers
 	public class CartController : Controller
 	{
         
-
+        private IWebHostEnvironment hostEnvironment;
+        private IEmailSender emailSender;
         private IProductRepository productRepository;
         private IApplicationUserRepository applicationUserRepository;
         private IInquiryDetailRepository inquiryDetailRepository;
         private IInquiryHeaderRepository inquiryHeaderRepository;
 
 
-        public CartController(ApplicationDbContext context, IProductRepository productRepository, IApplicationUserRepository applicationUserRepository, IInquiryDetailRepository inquiryDetailRepository, IInquiryHeaderRepository inquiryHeaderRepository)
+        public CartController(ApplicationDbContext context, IProductRepository productRepository, IApplicationUserRepository applicationUserRepository, IInquiryDetailRepository inquiryDetailRepository, IInquiryHeaderRepository inquiryHeaderRepository, IWebHostEnvironment hostEnvironment, IEmailSender emailSender)
         {
             this.productRepository = productRepository;
             this.applicationUserRepository = applicationUserRepository;
             this.inquiryDetailRepository = inquiryDetailRepository;
             this.inquiryHeaderRepository = inquiryHeaderRepository;
-
+            this.hostEnvironment = hostEnvironment;
+            this.emailSender = emailSender;
         }
 
         public IActionResult Index()
@@ -78,7 +82,7 @@ namespace OnlineShop_4M.Controllers
 
             return RedirectToAction("Index");
         }
-
+        [HttpGet]
         public IActionResult Summary()
         {
             var claimIdentity = (ClaimsIdentity)User.Identity;
@@ -112,6 +116,50 @@ namespace OnlineShop_4M.Controllers
             };
 
             return View(viewModel);
+        }
+        public IActionResult InquiryConfirmation()
+        {
+            HttpContext.Session.Clear();
+            return View();
+        }
+        [HttpPost]
+        public async Task<IActionResult> SummaryPost(ProductUserViewModel productUserViewModel)
+        {
+            var indetyClaims = (ClaimsIdentity)User.Identity;
+            var claim=indetyClaims?.FindFirst(ClaimTypes.NameIdentifier);
+            var pathTemplate = hostEnvironment.WebRootPath + PathManager.TemplatesPath + "inquiry.html";
+
+            var bodyHtml=await System.IO.File.ReadAllTextAsync(pathTemplate);
+
+            var textProducts = "";
+            foreach(var product in productUserViewModel.ProductList)
+            {
+                textProducts += $"- Name: {product.Name} " + $"<span style='font-size: 14px; color: green' >(ID: {product.Id})</span>" + "<br>";
+            }
+            var body = string.Format(bodyHtml, productUserViewModel.ApplicationUser.FullName, productUserViewModel.ApplicationUser.PhoneNumber, textProducts);
+            await emailSender.SendEmailAsync(productUserViewModel.ApplicationUser.Email, "Новый Заказ", body);
+            var inquiryHeader=new InquiryHeader()
+            {
+                ApplicationUserId=claim.Value,
+                ApplicationUser =applicationUserRepository.FirstOrDefault(x=>x.Id==claim.Value),
+                FullName =productUserViewModel.ApplicationUser.FullName,
+                Email=productUserViewModel.ApplicationUser.Email,
+                PhoneNumber=productUserViewModel.ApplicationUser.PhoneNumber ?? "+70000000000",
+                InquiryDate=DateTime.Now
+            };
+            inquiryHeaderRepository.Add(inquiryHeader);
+            inquiryHeaderRepository.Save();
+            foreach(var product in productUserViewModel.ProductList)
+            {
+                var inquiryDetail = new InquiryDetail() 
+                { 
+                    InquiryHeaderId=inquiryHeader.Id,
+                    ProductId=product.Id
+                };
+                inquiryDetailRepository.Add(inquiryDetail);
+            }
+            inquiryDetailRepository.Save();
+            return RedirectToAction("InquiryConfirmation");
         }
     }
 }

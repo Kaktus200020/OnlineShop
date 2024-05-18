@@ -1,12 +1,13 @@
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Identity.UI.Services;
 using Microsoft.EntityFrameworkCore;
 using OnlineShop_4M_DataAccess.Data;
 
 using OnlineShop_4M_DataAccess.Repository;
 
 using OnlineShop_4M_DataAccess.Repository.IRepository;
-
+using OnlineShop_4M_Utility;
 
 var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddScoped<ICategoryRepository, CategoryRepository>();
@@ -15,6 +16,8 @@ builder.Services.AddScoped<IProductRepository, ProductRepository>();
 builder.Services.AddScoped<IInquiryDetailRepository, InquiryDetailRepository>();
 builder.Services.AddScoped<IInquiryHeaderRepository, InquiryHeaderRepository>();
 builder.Services.AddScoped<IApplicationUserRepository, ApplicationUserRepository>();
+
+builder.Services.AddTransient<IEmailSender, EmailSender>();
 // Add services to the container.
 builder.Services.AddControllersWithViews();
 

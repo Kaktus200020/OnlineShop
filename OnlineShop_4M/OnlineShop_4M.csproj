@@ -36,7 +36,6 @@
     <Folder Include="Views\Product\" />
     <Folder Include="wwwroot\images\" />
     <Folder Include="wwwroot\images\product\" />
-    <Folder Include="Views\Cart\" />
   </ItemGroup>
   <ItemGroup>
     <Content Remove="wwwroot\images\" />
