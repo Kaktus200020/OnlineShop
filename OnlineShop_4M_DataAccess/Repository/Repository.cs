@@ -86,6 +86,9 @@ namespace OnlineShop_4M_DataAccess.Repository
             return query.ToList();
         }
 
-        
+        public void RemoveRange(IEnumerable<T> entity)
+        {
+            dbSet.RemoveRange(entity);
+        }
     }
 }
